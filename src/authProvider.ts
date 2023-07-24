@@ -1,6 +1,5 @@
 import {AuthBindings} from "@refinedev/core";
 
-
 import {
   AuthActionResponse,
   CheckResponse,
@@ -9,11 +8,8 @@ import {
 import {message} from "antd";
 import {gqlDataProvider, client} from "./api";
 
-
 export const authProvider: AuthBindings = {
   login: async ({email, password}): Promise<AuthActionResponse> => {
-    console.log("login", email, password)
-
     const {data} = await gqlDataProvider.custom!({
       url: "",
       method: "post",
@@ -59,7 +55,7 @@ export const authProvider: AuthBindings = {
       });
 
     if (data) {
-      if(data.success === false){
+      if (data.success === false) {
         message.error(data.message);
         return {
           success: false,
@@ -113,7 +109,6 @@ export const authProvider: AuthBindings = {
         return data;
       });
 
-
     if (data) {
       return Promise.resolve({
         id: data.id,
@@ -131,11 +126,124 @@ export const authProvider: AuthBindings = {
   check: function (params?: any): Promise<CheckResponse> {
     const token = localStorage.getItem("token");
     if (!token) {
-      return Promise.resolve({redirectTo: "/login", success: false, authenticated: false});
+      return Promise.resolve({
+        redirectTo: "/login",
+        success: false,
+        authenticated: false,
+      });
     }
-    return Promise.resolve({redirectTo: "/home", success: true, authenticated: true});
+    return Promise.resolve({
+      redirectTo: "/home",
+      success: true,
+      authenticated: true,
+    });
   },
   onError: function (error: any): Promise<OnErrorResponse> {
     return Promise.resolve({redirectTo: "/login", success: false});
+  },
+  forgotPassword: async ({email}): Promise<AuthActionResponse> => {
+    // persist the email in the local storage
+    localStorage.setItem("recover_email", email);
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "forgotPassword",
+        variables: {
+          email: {
+            value: email.trim(),
+            type: "String",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch((error) => {
+        console.log("error", error);
+        message.error("Something Went Wrong, Authentication Failed");
+        return {
+          data: null,
+        };
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success === false) {
+        message.error(data.message);
+        return {
+          success: false,
+        };
+      }
+
+      message.success(data.message);
+      return {
+        success: true,
+        redirectTo: "/verify-otp",
+      };
+    }
+    return {
+      success: false,
+    };
+  },
+  updatePassword: async ({
+    password,
+    confirmPassword,
+  }): Promise<AuthActionResponse> => {
+    console.log("password", password);
+    console.log("confirmPassword", confirmPassword);
+    // return Promise.resolve({success: true, redirectTo: "/login"});
+
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "userChangePassword",
+        variables: {
+          password: {
+            value: password.trim(),
+            type: "String",
+            required: true,
+          },
+          confirmPassword: {
+            value: confirmPassword.trim(),
+            type: "String",
+            required: true,
+          },
+          email: {
+            value: localStorage.getItem("recover_email"),
+            type: "String",
+            required: true,
+          },
+          otp: {
+            value: localStorage.getItem("recover_otp"),
+            type: "String",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch((error) => {
+        console.error(error);
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+        return {
+          success: true,
+          redirectTo: "/login",
+        };
+      }
+      message.error(data.message);
+    }
+    return Promise.reject({success: false});
   },
 };

@@ -1,4 +1,9 @@
-import {Authenticated, Refine} from "@refinedev/core";
+import {
+  Authenticated,
+  LoginFormTypes,
+  Refine,
+  useNavigation,
+} from "@refinedev/core";
 import {RefineKbar, RefineKbarProvider} from "@refinedev/kbar";
 
 import {
@@ -25,7 +30,19 @@ import {ColorModeContextProvider} from "./contexts/color-mode";
 
 import {gqlDataProvider} from "./api";
 import {GroupOutlined, HomeFilled, SettingFilled} from "@ant-design/icons";
-import {Menu, Typography} from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Layout,
+  Menu,
+  message,
+  Row,
+  theme,
+  Typography,
+} from "antd";
 import MenuDivider from "antd/es/menu/MenuDivider";
 import {MeetingsPage} from "./pages/meetings";
 import {UsersPage} from "./pages/control/pages/users";
@@ -35,16 +52,29 @@ import {EventPage} from "./pages/event";
 import {HomePage} from "./pages/home";
 import {CommitteesPage} from "./pages/control/pages/committees";
 import {ControlHome} from "./pages/control/pages";
+import {VerifyOtpForm} from "./components/verify_otp";
 
-const {Text} = Typography;
+// import {
+//   bodyStyles,
+//   containerStyles,
+//   headStyles,
+//   layoutStyles,
+//   titleStyles,
+// } from "./styles";
+
+const {Text, Title} = Typography;
+const {useToken} = theme;
 
 function App() {
+  const {token} = useToken();
   const {t, i18n} = useTranslation();
   const i18nProvider = {
     translate: (key: string, params: object) => t(key, params),
     changeLocale: (lang: string) => i18n.changeLanguage(lang),
     getLocale: () => i18n.language,
   };
+
+  const {push} = useNavigation();
 
   const getTitle = (collapsed: boolean) => {
     return (
@@ -271,13 +301,40 @@ function App() {
                   }
                 />
                 <Route
+                  path="/change-password"
+                  element={
+                    <AuthPage
+                      type="updatePassword"
+                      title={
+                        <ThemedTitleV2
+                          collapsed={false}
+                          text="Meeting App"
+                          icon={<AppIcon />}
+                        />
+                      }
+                    />
+                  }
+                />
+                <Route
                   path="/register"
                   element={<AuthPage type="register" />}
                 />
                 <Route
                   path="/forgot-password"
-                  element={<AuthPage type="forgotPassword" />}
+                  element={
+                    <AuthPage
+                      title={
+                        <ThemedTitleV2
+                          collapsed={false}
+                          text="Meeting App"
+                          icon={<AppIcon />}
+                        />
+                      }
+                      type="forgotPassword"
+                    />
+                  }
                 />
+                <Route path="/verify-otp" element={<VerifyOtpForm />} />
               </Route>
             </Routes>
 
