@@ -1,24 +1,23 @@
 import {useGetIdentity} from "@refinedev/core";
-import {Spin} from "antd";
+import {Descriptions, Spin} from "antd";
 import {useEffect, useState} from "react";
 import {gqlDataProvider} from "../../../api";
 import {UserData, EventData} from "../../../interfaces";
 import {useParams} from "react-router-dom";
 import {EventAgendasListComponent} from "./agendas_list";
+import moment from "moment";
 
 interface Props {
   rand?: any;
+  eventId?: number | null;
 }
 
-export const EventAgendasComponent: React.FC<Props> = () => {
+export const EventDetailsComponent: React.FC<Props> = (props: Props) => {
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(12);
-  const [total, setTotal] = useState(0);
-  const [events, setEvents] = useState<EventData[]>([]);
   const [event, setEvent] = useState<EventData | null>(null);
   const {data: user} = useGetIdentity<UserData>();
 
+  //   get event id from url
   const {id} = useParams<{id: string}>();
 
   const getEvent = async () => {
@@ -30,7 +29,7 @@ export const EventAgendasComponent: React.FC<Props> = () => {
         operation: "event",
         variables: {
           id: {
-            value: parseInt(id?.toString() ?? "0"),
+            value: parseInt(props.eventId?.toString() ?? "0"),
             type: "Int",
             required: true,
           },
@@ -75,8 +74,6 @@ export const EventAgendasComponent: React.FC<Props> = () => {
       .then((data) => {
         return data;
       });
-
-    console.log(data);
     if (data) {
       setEvent(data);
     }
@@ -90,7 +87,27 @@ export const EventAgendasComponent: React.FC<Props> = () => {
   return (
     <>
       <Spin spinning={loading}>
-        {event && <EventAgendasListComponent event={event} />}
+        <Descriptions title="" column={1}>
+          <Descriptions.Item label="Event Title">
+            {event?.title}
+          </Descriptions.Item>
+          <Descriptions.Item label="Description">
+            {event?.description}
+          </Descriptions.Item>
+          <Descriptions.Item label="Start At">
+            {moment(event?.startTime).format("DD MMM YYYY hh:mm A")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Will End At">
+            {moment(event?.endTime).format("DD MMM YYYY hh:mm A")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Venue">
+            {event?.venue?.name}
+          </Descriptions.Item>
+          <Descriptions.Item label="Creatd By">
+            {event?.author?.firstName} {event?.author?.middleName}{" "}
+            {event?.author?.lastName}
+          </Descriptions.Item>
+        </Descriptions>
       </Spin>
     </>
   );

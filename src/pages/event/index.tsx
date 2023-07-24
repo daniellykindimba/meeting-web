@@ -21,9 +21,8 @@ import {
 } from "@ant-design/icons";
 import {EventFeedsComponent} from "./components/feeds";
 import {EventAgendasComponent} from "./components/agendas";
-import {EventDocumentsComponent} from "./components/agendas_list";
 import {EventAttendeesComponent} from "./components/attendees";
-
+import {EventDocumentsComponent} from "./components/documents";
 
 const items = [
   // {label: "Event Feeds", children: <EventFeedsComponent />, key: "1"},

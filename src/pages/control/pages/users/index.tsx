@@ -4,7 +4,6 @@ import {
   Button,
   Col,
   Dropdown,
-  Empty,
   Form,
   Grid,
   Input,
@@ -15,23 +14,21 @@ import {
   Space,
   Table,
   Tag,
+  message,
 } from "antd";
 import {useState, useEffect} from "react";
 import {Link} from "react-router-dom";
 import {
-  BlockOutlined,
   DeleteFilled,
-  DownOutlined,
   EditFilled,
-  FolderAddOutlined,
+  KeyOutlined,
   LockOutlined,
   MenuUnfoldOutlined,
+  SyncOutlined,
   UnlockOutlined,
   UserAddOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
-import {EventData, UserData} from "../../../../interfaces";
-import events from "events";
+import {UserData} from "../../../../interfaces";
 import {gqlDataProvider} from "../../../../api";
 import {CreateUserForm} from "./forms/create_user_form";
 
@@ -61,7 +58,23 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
       method: "get",
       meta: {
         operation: "users",
-        variables: {},
+        variables: {
+          key: {
+            value: key,
+            type: "String",
+            required: false,
+          },
+          page: {
+            value: page,
+            type: "Int",
+            required: false,
+          },
+          pageSize: {
+            value: pageSize,
+            type: "Int",
+            required: false,
+          },
+        },
         fields: [
           "total",
           "page",
@@ -96,6 +109,168 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
       setLimit(pageSize);
     }
     setLoading(false);
+  };
+
+  const createUserCredential = async (user_id: number) => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "createUserCredentials",
+        variables: {
+          userId: {
+            value: user_id,
+            type: "Int",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+      }
+    }
+  };
+
+  const deleteUser = async (user_id: number) => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "deleteUser",
+        variables: {
+          id: {
+            value: user_id,
+            type: "Int",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+        setMembers(members.filter((member) => member.id !== user_id));
+      }
+    }
+  };
+
+  const blockUser = async (user_id: number) => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "blockUser",
+        variables: {
+          id: {
+            value: user_id,
+            type: "Int",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+        setMembers(
+          members.map((member) => {
+            if (member.id === user_id) {
+              member.isActive = false;
+            }
+            return member;
+          })
+        );
+      }
+    }
+  };
+
+  const unBlockUser = async (user_id: number) => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "unblockUser",
+        variables: {
+          id: {
+            value: user_id,
+            type: "Int",
+            required: true,
+          },
+        },
+        fields: ["success", "message"],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+        setMembers(
+          members.map((member) => {
+            if (member.id === user_id) {
+              member.isActive = true;
+            }
+            return member;
+          })
+        );
+      }
+    }
+  };
+
+  const syncUsers = async () => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "post",
+      meta: {
+        operation: "syncUsers",
+        variables: {},
+        fields: ["success", "message"],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      if (data.success) {
+        message.success(data.message);
+        getMembers("", 1, limit);
+      }
+    }
   };
 
   const columns = [
@@ -156,6 +331,28 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
   const getEventDropdownMenue = (member: UserData) => {
     const items: MenuProps["items"] = [
       {
+        key: "createCredentials",
+        label: (
+          <Popconfirm
+            title="Create User Credentials"
+            description="Are you sure to Create/Re-create User Credentials?"
+            onConfirm={() => createUserCredential(member.id)}
+            onCancel={() => {
+              message.info("Cancelled");
+            }}
+            okText="Yes"
+            cancelText="No"
+            disabled={user?.id === member.id}
+          >
+            <Button type="link" disabled={user?.id === member.id}>
+              Create Credentials
+            </Button>
+          </Popconfirm>
+        ),
+        disabled: true,
+        icon: <DeleteFilled />,
+      },
+      {
         key: "edituser",
         label: <Button type="link">Edit</Button>,
         icon: <EditFilled />,
@@ -167,16 +364,13 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
           <Popconfirm
             title="Delete the User"
             description="Are you sure to delete this User?"
-            onConfirm={() => {
-              console.log("deleting");
-            }}
-            onCancel={() => {
-              console.log("deleting");
-            }}
+            onConfirm={() => deleteUser(member.id)}
+            onCancel={() => message.info("Cancelled")}
             okText="Yes"
             cancelText="No"
+            disabled={user?.id === member.id}
           >
-            <Button type="link" danger>
+            <Button type="link" danger disabled={user?.id === member.id}>
               Delete
             </Button>
           </Popconfirm>
@@ -194,16 +388,21 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
                 : "Are you sure to unblock this user?"
             }
             description={member.isActive ? "Are you sure" : "Are you sure"}
-            onConfirm={() => {
-              console.log("block");
-            }}
+            onConfirm={() =>
+              member.isActive ? blockUser(member.id) : unBlockUser(member.id)
+            }
             onCancel={() => {
               console.log("unblock");
             }}
             okText={member.isActive ? "Block" : "Unblock"}
             cancelText="No"
+            disabled={user?.id === member.id}
           >
-            <Button type="link" danger={member.isActive}>
+            <Button
+              type="link"
+              danger={member.isActive}
+              disabled={user?.id === member.id}
+            >
               {member.isActive ? "Block" : "Unblock"}
             </Button>
           </Popconfirm>
@@ -233,7 +432,7 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
     if (!user?.isAdmin) {
       push("/");
     }
-    getMembers("", 1, 12);
+    getMembers("", 1, 25);
   }, []);
 
   return (
@@ -276,6 +475,28 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
         <Col span={10} style={{display: "flex", justifyContent: "flex-end"}}>
           <Button
             size="large"
+            icon={<KeyOutlined />}
+            onClick={() => syncUsers()}
+            type="primary"
+            style={{
+              marginRight: "10px",
+            }}
+          >
+            Auth Sync
+          </Button>
+          <Button
+            size="large"
+            icon={<SyncOutlined />}
+            onClick={() => syncUsers()}
+            type="primary"
+            style={{
+              marginRight: "10px",
+            }}
+          >
+            Sync Users
+          </Button>
+          <Button
+            size="large"
             icon={<UserAddOutlined />}
             onClick={() => setCreateMemberModal(true)}
             type="primary"
@@ -285,7 +506,22 @@ export const UsersPage: React.FC<Props> = (props: Props) => {
         </Col>
       </Row>
 
-      <Table dataSource={members} columns={columns} />
+      <Table
+        dataSource={members}
+        columns={columns}
+        scroll={{
+          y: isMobile ? "calc(100vh - 300px)" : "calc(100vh - 318px)",
+        }}
+        pagination={{
+          current: page,
+          pageSize: limit,
+          total: total,
+          onChange: (page, pageSize) => {
+            setLimit(pageSize);
+            getMembers("", page, pageSize);
+          },
+        }}
+      />
 
       <Modal
         title="Create New User"

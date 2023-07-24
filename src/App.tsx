@@ -24,12 +24,7 @@ import {Header} from "./components/header";
 import {ColorModeContextProvider} from "./contexts/color-mode";
 
 import {gqlDataProvider} from "./api";
-import {
-  GroupOutlined,
-  HomeFilled,
-  LogoutOutlined,
-  SettingFilled,
-} from "@ant-design/icons";
+import {GroupOutlined, HomeFilled, SettingFilled} from "@ant-design/icons";
 import {Menu, Typography} from "antd";
 import MenuDivider from "antd/es/menu/MenuDivider";
 import {MeetingsPage} from "./pages/meetings";
@@ -37,6 +32,9 @@ import {UsersPage} from "./pages/control/pages/users";
 import {DepartmentsPage} from "./pages/control/pages/departments";
 import {VenuesPage} from "./pages/control/pages/venues";
 import {EventPage} from "./pages/event";
+import {HomePage} from "./pages/home";
+import {CommitteesPage} from "./pages/control/pages/committees";
+import {ControlHome} from "./pages/control/pages";
 
 const {Text} = Typography;
 
@@ -46,6 +44,18 @@ function App() {
     translate: (key: string, params: object) => t(key, params),
     changeLocale: (lang: string) => i18n.changeLanguage(lang),
     getLocale: () => i18n.language,
+  };
+
+  const getTitle = (collapsed: boolean) => {
+    return (
+      <>
+        <ThemedTitleV2
+          collapsed={collapsed}
+          text="Meeting App"
+          icon={<AppIcon />}
+        />
+      </>
+    );
   };
 
   return (
@@ -70,8 +80,10 @@ function App() {
                   <Authenticated fallback={<CatchAllNavigate to="/login" />}>
                     <ThemedLayoutV2
                       Header={() => <Header sticky />}
-                      Sider={(props, logout) => (
+                      Sider={() => (
                         <ThemedSiderV2
+                          fixed={true}
+                          Title={({collapsed}) => getTitle(collapsed)}
                           render={(logout) => {
                             return (
                               <>
@@ -89,7 +101,7 @@ function App() {
                                   key="settings"
                                   icon={<SettingFilled />}
                                 >
-                                  <Link to={"/settings"}>Settings</Link>
+                                  Settings
                                 </Menu.Item>
                                 {logout.logout}
                               </>
@@ -111,14 +123,10 @@ function App() {
                 }
               >
                 <Route path="/">
-                  <Route
-                    index
-                    element={
-                      <>
-                        <Text>Home</Text>
-                      </>
-                    }
-                  />
+                  <Route index element={<HomePage />} />
+                </Route>
+                <Route path="/home">
+                  <Route index element={<HomePage />} />
                 </Route>
                 <Route path="/meetings">
                   <Route index element={<MeetingsPage />} />
@@ -144,8 +152,10 @@ function App() {
                   <Authenticated fallback={<CatchAllNavigate to="/login" />}>
                     <ThemedLayoutV2
                       Header={() => <Header sticky />}
-                      Sider={(props) => (
+                      Sider={() => (
                         <ThemedSiderV2
+                          fixed={true}
+                          Title={({collapsed}) => getTitle(collapsed)}
                           render={(logout) => {
                             return (
                               <>
@@ -161,6 +171,15 @@ function App() {
 
                                 <Menu.Item key="users" icon={<GroupOutlined />}>
                                   <Link to={"/control/users"}>Users</Link>
+                                </Menu.Item>
+
+                                <Menu.Item
+                                  key="committees"
+                                  icon={<GroupOutlined />}
+                                >
+                                  <Link to={"/control/committees"}>
+                                    Committees
+                                  </Link>
                                 </Menu.Item>
 
                                 <Menu.Item
@@ -204,17 +223,13 @@ function App() {
                 }
               >
                 <Route path="/control">
-                  <Route
-                    index
-                    element={
-                      <>
-                        <Text>Control Home</Text>
-                      </>
-                    }
-                  />
+                  <Route index element={<ControlHome />} />
                 </Route>
                 <Route path="/control/users">
                   <Route index element={<UsersPage />} />
+                </Route>
+                <Route path="/control/committees">
+                  <Route index element={<CommitteesPage />} />
                 </Route>
                 <Route path="/control/departments">
                   <Route index element={<DepartmentsPage />} />

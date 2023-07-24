@@ -2,7 +2,7 @@ import dataProvider, { GraphQLClient } from "@refinedev/strapi-graphql";
 
 
 const production = false;
-let API_URL = "http://192.168.2.67:8483/graphql/";
+let API_URL = "http://dev.olbongo.com:8483/graphql/";
 if(production){
   API_URL = "";
 }

@@ -19,23 +19,16 @@ import {
   SelectProps,
 } from "antd";
 import {useEffect, useState} from "react";
-import {gqlDataProvider} from "../../api";
 import {
-  UserData,
-  EventData,
-  EventAttendeeData,
+  CommitteeData,
   DepartmentData,
-} from "../../interfaces";
+  UserData,
+} from "../../../../../interfaces";
+import {gqlDataProvider} from "../../../../../api";
 
 const {TextArea} = Input;
 
 const {Option} = Select;
-
-
-interface searchFormData {
-  q: string;
-}
-
 
 interface formData {
   title: string;
@@ -47,12 +40,12 @@ interface formData {
 
 interface Props {
   onFinish: any;
-  event?: EventData | null;
+  committee?: CommitteeData | null;
 }
 
 const options: SelectProps["options"] = [];
 
-export const AddingMeetingAttendeesComponent: React.FC<Props> = (
+export const AddingCommitteesMembersComponent: React.FC<Props> = (
   props: Props
 ) => {
   const [loading, setLoading] = useState(true);
@@ -64,7 +57,6 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
   const [members, setMembers] = useState<UserData[]>([]);
   const [addingAttendeeModal, setAddingAttendeeModal] = useState(false);
   const [form] = Form.useForm<formData>();
-  const [searchForm] = Form.useForm<searchFormData>();
   const {data: user} = useGetIdentity<UserData>();
   const [departments, setDepartments] = useState<DepartmentData[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<number[]>([]);
@@ -110,17 +102,12 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
       url: "",
       method: "get",
       meta: {
-        operation: "eventAttendeesToAdd",
+        operation: "notCommitteeMembers",
         variables: {
-          eventId: {
-            value: props.event?.id,
+          id: {
+            value: props.committee?.id,
             required: true,
             type: "Int",
-          },
-          departmentIds: {
-            value: departmentIds,
-            required: false,
-            type: "[Int]",
           },
           key: {
             value: key,
@@ -171,21 +158,21 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
     setLoading(false);
   };
 
-  const addEventAttendee = async (attendeeId: number) => {
+  const addMember = async (id: number) => {
     setLoading(true);
     const {data} = await gqlDataProvider.custom!({
       url: "",
       method: "post",
       meta: {
-        operation: "addEventAttendee",
+        operation: "addCommitteeMember",
         variables: {
-          eventId: {
-            value: props.event?.id,
+          committeeId: {
+            value: props.committee?.id,
             required: true,
             type: "Int",
           },
-          attendeeId: {
-            value: attendeeId,
+          userId: {
+            value: id,
             required: true,
             type: "Int",
           },
@@ -194,13 +181,13 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
           "success",
           "message",
           {
-            eventAttendee: [
+            committeeMember: [
               "id",
               {
-                event: ["id"],
+                committee: ["id"],
               },
               {
-                attendee: [
+                user: [
                   "id",
                   "email",
                   "phone",
@@ -223,37 +210,24 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
         return data;
       });
     if (data) {
-      setMembers(members.filter((member) => member.id !== attendeeId));
-      props.onFinish(data.eventAttendee);
+      setMembers(members.filter((member) => member.id !== id));
+      props.onFinish(data.committeeMember);
     }
     setLoading(false);
   };
 
-  const handleChange = (value: string[]) => {
-    setSelectedDepartments(value.map((v) => parseInt(v)));
-    getMembersToAdd(
-      "",
-      1,
-      limit,
-      value.map((v) => parseInt(v))
-    );
-  };
-
   useEffect(() => {
     getMembersToAdd();
-    getDepartments();
   }, []);
 
   return (
     <>
       <Row>
-        <Col span={10}>
-          <Form<searchFormData>
-            form={searchForm}
+        <Col span={16}>
+          <Form
             name="basic"
             onFinish={(values) => {
-              setKey(values.q);
-              getMembersToAdd(values.q, 1, limit, selectedDepartments);
+              getMembersToAdd(values.q, 1, limit);
             }}
             autoComplete="off"
           >
@@ -269,40 +243,6 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
               />
             </Form.Item>
           </Form>
-        </Col>
-
-        <Col span={8}>
-          <Select
-            size="large"
-            mode="multiple"
-            allowClear
-            style={{width: "100%"}}
-            placeholder="Please select Department"
-            defaultValue={[]}
-            onChange={handleChange}
-            options={departments.map((department) => {
-              return {
-                label: department.name,
-                value: department.id,
-              };
-            })}
-          />
-        </Col>
-        <Col span={6}>
-          <Button
-            icon={<SearchOutlined />}
-            size="large"
-            onClick={() => {
-              getMembersToAdd(
-                searchForm.getFieldValue("q"),
-                1,
-                limit,
-                selectedDepartments.map((v) => parseInt(v.toString()))
-              );
-            }}
-            loading={loading}
-            disabled={loading}
-          ></Button>
         </Col>
       </Row>
       <div
@@ -323,7 +263,7 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
                   title="Are you sure to add this user to the meeting?"
                   description="Are you sure?"
                   onConfirm={() => {
-                    addEventAttendee(member.id);
+                    addMember(member.id);
                   }}
                   onCancel={() => {
                     console.log("adding");
@@ -357,18 +297,12 @@ export const AddingMeetingAttendeesComponent: React.FC<Props> = (
         />
       </div>
 
-      <div
-        style={{
-          marginTop: 10,
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
+      <div style={{marginTop: 10, display: "flex", justifyContent: "center"}}>
         <Pagination
           defaultCurrent={page}
           total={total}
           onChange={(page, pageSize) => {
-            getMembersToAdd(key, page, pageSize, selectedDepartments);
+            getMembersToAdd(key, page, pageSize as number);
           }}
         />
       </div>

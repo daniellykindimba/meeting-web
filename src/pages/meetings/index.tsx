@@ -213,7 +213,6 @@ export const MeetingsPage: React.FC<Props> = (props: Props) => {
           <Button
             size="large"
             icon={<FolderAddOutlined />}
-            shape="round"
             onClick={() => setCreateNewMeetingModal(true)}
             type="primary"
           >

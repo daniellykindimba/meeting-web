@@ -1,6 +1,7 @@
 import {
   Alert,
   Button,
+  Card,
   Col,
   DatePicker,
   Form,
@@ -13,7 +14,12 @@ import {
 } from "antd";
 import {useEffect, useState} from "react";
 import {gqlDataProvider} from "../../../api";
-import {UserData, VenueData} from "../../../interfaces";
+import {
+  CommitteeData,
+  DepartmentData,
+  UserData,
+  VenueData,
+} from "../../../interfaces";
 import {PlusOutlined} from "@ant-design/icons";
 import {useGetIdentity} from "@refinedev/core";
 import {CreateVenueForm} from "../../venues/forms/create_venue_form";
@@ -28,6 +34,8 @@ interface formData {
   startTime: string;
   endTime: string;
   venueId: number;
+  committees: string[];
+  departments: string[];
 }
 
 interface Props {
@@ -39,6 +47,8 @@ export const CreateMeetingForm: React.FC<Props> = (props: Props) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [venues, setVenues] = useState<VenueData[]>([]);
   const [eventTypes, setEventTypes] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<DepartmentData[]>([]);
+  const [committees, setCommittees] = useState<CommitteeData[]>([]);
   const [createVenueModal, setCreateVenueModal] = useState(false);
   const [form] = Form.useForm<formData>();
   const {data: user} = useGetIdentity<UserData>();
@@ -75,6 +85,16 @@ export const CreateMeetingForm: React.FC<Props> = (props: Props) => {
             value: values.venueId,
             type: "Int",
             required: true,
+          },
+          committees: {
+            value: values.committees,
+            type: "[Int]",
+            required: false,
+          },
+          departments: {
+            value: values.departments,
+            type: "[Int]",
+            required: false,
           },
         },
         fields: [
@@ -184,6 +204,64 @@ export const CreateMeetingForm: React.FC<Props> = (props: Props) => {
     }
   };
 
+  const getDepartments = async () => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "get",
+      meta: {
+        operation: "departments",
+        variables: {},
+        fields: [
+          "total",
+          "page",
+          "pages",
+          {
+            results: ["id", "name", "description"],
+          },
+        ],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      setDepartments(data.results);
+    }
+  };
+
+  const getCommittees = async () => {
+    const {data} = await gqlDataProvider.custom!({
+      url: "",
+      method: "get",
+      meta: {
+        operation: "committees",
+        variables: {},
+        fields: [
+          "total",
+          "page",
+          "pages",
+          {
+            results: ["id", "name", "description"],
+          },
+        ],
+      },
+    })
+      .catch(() => {
+        return {data: null};
+      })
+      .then((data) => {
+        return data;
+      });
+
+    if (data) {
+      setCommittees(data.results);
+    }
+  };
+
   const onCreateVenueFinish = async (venue: VenueData) => {
     setCreateVenueModal(false);
     setVenues([...venues, venue]);
@@ -192,6 +270,8 @@ export const CreateMeetingForm: React.FC<Props> = (props: Props) => {
   useEffect(() => {
     getVenues();
     getEventTypes();
+    getDepartments();
+    getCommittees();
   }, []);
 
   return (
@@ -227,76 +307,126 @@ export const CreateMeetingForm: React.FC<Props> = (props: Props) => {
         </Form.Item>
 
         <Row>
-          <Col span={24} style={{display: "flex"}}>
+          <Col span={12}>
+            <Row>
+              <Col span={24} style={{display: "flex"}}>
+                <Form.Item
+                  label="Start Time"
+                  name="startTime"
+                  rules={[{required: true, message: "Meeting Start Time!"}]}
+                >
+                  <DatePicker showTime size="large" />
+                </Form.Item>
+
+                <Form.Item
+                  label="End Time"
+                  name="endTime"
+                  rules={[{required: true, message: "Meeting End Time!"}]}
+                  style={{marginLeft: "10px"}}
+                >
+                  <DatePicker showTime size="large" />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <Form.Item
-              label="Start Time"
-              name="startTime"
-              rules={[{required: true, message: "Meeting Start Time!"}]}
+              labelCol={{span: 24}}
+              label={
+                <>
+                  <span>Venue</span>
+                  {user?.isAdmin && (
+                    <Tooltip title="Click to Create a New Venue">
+                      <Button
+                        size="small"
+                        style={{marginLeft: "10px"}}
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateVenueModal(true)}
+                      />
+                    </Tooltip>
+                  )}
+                </>
+              }
+              name="venueId"
+              rules={[{required: true, message: "Meeting Venue!"}]}
             >
-              <DatePicker showTime size="large" />
+              <Select
+                style={{width: "50%", margin: "0 8px"}}
+                size="large"
+                allowClear
+              >
+                {venues.map((venue) => {
+                  return (
+                    <Option value={venue.id} key={venue.id}>
+                      {venue.name}
+                    </Option>
+                  );
+                })}
+              </Select>
             </Form.Item>
 
             <Form.Item
-              label="End Time"
-              name="endTime"
-              rules={[{required: true, message: "Meeting End Time!"}]}
-              style={{marginLeft: "10px"}}
+              label="Event Type"
+              name="eventType"
+              rules={[{required: true, message: "Event Type!"}]}
             >
-              <DatePicker showTime size="large" />
+              <Select style={{width: "50%", margin: "0 8px"}} size="large">
+                {eventTypes.map((eventType) => {
+                  return (
+                    <Option value={eventType} key={eventType}>
+                      {eventType.charAt(0).toUpperCase() + eventType.slice(1)}
+                    </Option>
+                  );
+                })}
+              </Select>
             </Form.Item>
           </Col>
+
+          <Col span={12}>
+            <Card
+              title="Attendee Loading Helper"
+              style={{
+                marginLeft: 5,
+                marginRight: 5,
+              }}
+            >
+              <Form.Item
+                label="Committees"
+                name="committees"
+                rules={[{required: false, message: "Please Select Committee!"}]}
+              >
+                <Select size="large" showSearch allowClear mode="multiple">
+                  {committees.map((committee) => {
+                    return (
+                      <Option value={committee.id} key={committee.id}>
+                        {committee.name.charAt(0).toUpperCase() +
+                          committee.name.slice(1)}
+                      </Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Departments"
+                name="departments"
+                rules={[
+                  {required: false, message: "Please Select Departments!"},
+                ]}
+              >
+                <Select size="large" showSearch allowClear mode="multiple">
+                  {departments.map((department) => {
+                    return (
+                      <Option value={department.id} key={department.id}>
+                        {department.name.charAt(0).toUpperCase() +
+                          department.name.slice(1)}
+                      </Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+            </Card>
+          </Col>
         </Row>
-
-        <Form.Item
-          labelCol={{span: 24}}
-          label={
-            <>
-              <span>Venue</span>
-              {user?.isAdmin && (
-                <Tooltip title="Click to Create a New Venue">
-                  <Button
-                    size="small"
-                    style={{marginLeft: "10px"}}
-                    icon={<PlusOutlined />}
-                    onClick={() => setCreateVenueModal(true)}
-                  />
-                </Tooltip>
-              )}
-            </>
-          }
-          name="venueId"
-          rules={[{required: true, message: "Meeting Venue!"}]}
-        >
-          <Select
-            style={{width: "50%", margin: "0 8px"}}
-            size="large"
-            allowClear
-          >
-            {venues.map((venue) => {
-              return (
-                <Option value={venue.id} key={venue.id}>
-                  {venue.name}
-                </Option>
-              );
-            })}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label="Event Type"
-          name="eventType"
-          rules={[{required: true, message: "Event Type!"}]}
-        >
-          <Select style={{width: "50%", margin: "0 8px"}} size="large">
-            {eventTypes.map((eventType) => {
-              return (
-                <Option value={eventType} key={eventType}>
-                  {eventType.charAt(0).toUpperCase() + eventType.slice(1)}
-                </Option>
-              );
-            })}
-          </Select>
-        </Form.Item>
 
         <Form.Item>
           <Button

@@ -10,7 +10,7 @@ interface Props {
   rand?: any;
 }
 
-export const EventAgendasComponent: React.FC<Props> = (props: Props) => {
+export const EventDocumentsComponent: React.FC<Props> = (props: Props) => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);

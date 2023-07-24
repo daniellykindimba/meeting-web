@@ -1,18 +1,9 @@
-import {
-  CloseOutlined,
-  DeleteFilled,
-  FolderAddOutlined,
-  PlusOutlined,
-  ReadOutlined,
-  UploadOutlined,
-} from "@ant-design/icons";
+import {DeleteFilled, ReadOutlined, UploadOutlined} from "@ant-design/icons";
 import {useGetIdentity} from "@refinedev/core";
 import {
-  Alert,
   Avatar,
   Button,
   Col,
-  DatePicker,
   Drawer,
   Form,
   Input,
@@ -21,21 +12,18 @@ import {
   Popconfirm,
   Row,
   Select,
-  Tooltip,
+  Tag,
   message,
 } from "antd";
 import {useEffect, useState} from "react";
 import {gqlDataProvider} from "../../api";
-import {
-  VenueData,
-  UserData,
-  EventData,
-  EventAttendeeData,
-  EventDocumentData,
-} from "../../interfaces";
-import {CreateVenueForm} from "../venues/forms/create_venue_form";
-import {AddingMeetingAttendeesComponent} from "./adding_attendees";
+import {UserData, EventData, EventDocumentData} from "../../interfaces";
 import {UploadingMeetingDocumentForm} from "./forms/uploading_meeting_document";
+
+// import image
+
+import PdfLogo from "../../images/pdf.png";
+import moment from "moment";
 
 const {TextArea} = Input;
 
@@ -96,6 +84,20 @@ export const MeetingDocumentsListComponent: React.FC<Props> = (
               "created",
               "updated",
               "isActive",
+              {
+                event: ["id", "title", "description"],
+              },
+              {
+                author: [
+                  "id",
+                  "email",
+                  "phone",
+                  "firstName",
+                  "middleName",
+                  "lastName",
+                  "avatar",
+                ],
+              },
             ],
           },
         ],
@@ -191,18 +193,16 @@ export const MeetingDocumentsListComponent: React.FC<Props> = (
           </Form>
         </Col>
 
-        {user?.id === props.event?.author.id && (
-          <Col span={10} style={{display: "flex", justifyContent: "flex-end"}}>
-            <Button
-              size="large"
-              icon={<UploadOutlined />}
-              onClick={() => setUploadingModal(true)}
-              type="primary"
-            >
-              Upload Document
-            </Button>
-          </Col>
-        )}
+        <Col span={10} style={{display: "flex", justifyContent: "flex-end"}}>
+          <Button
+            size="large"
+            icon={<UploadOutlined />}
+            onClick={() => setUploadingModal(true)}
+            type="primary"
+          >
+            Upload Document
+          </Button>
+        </Col>
       </Row>
       <List
         itemLayout="horizontal"
@@ -234,13 +234,34 @@ export const MeetingDocumentsListComponent: React.FC<Props> = (
             ]}
           >
             <List.Item.Meta
-              avatar={
-                <Avatar
-                  src={`https://xsgames.co/randomusers/avatar.php?g=pixel&key=${index}`}
-                />
-              }
+              avatar={<Avatar src={PdfLogo} />}
               title={<a>{document.title}</a>}
-              description={document.description}
+              description={
+                <>
+                  <p>{document.description}</p>
+                  {document?.author && (
+                    <Tag color="green">
+                      Uploded By:{" "}
+                      {document.author.firstName +
+                        " " +
+                        document.author.middleName +
+                        " " +
+                        document.author.lastName}
+                    </Tag>
+                  )}
+                  {document?.event && (
+                    <Tag color="green">Event: {document.event.title}</Tag>
+                  )}
+                  {document?.event && (
+                    <Tag color="green">
+                      Happening On:{" "}
+                      {moment(document.event.startTime).format(
+                        "DD MMM YYYY hh:mm A"
+                      )}
+                    </Tag>
+                  )}
+                </>
+              }
             />
           </List.Item>
         )}
@@ -266,6 +287,7 @@ export const MeetingDocumentsListComponent: React.FC<Props> = (
         width={"80vw"}
         onClose={() => setDocumentView(false)}
         open={documentView}
+        bodyStyle={{padding: 0}}
       >
         <iframe
           src={document?.file}
